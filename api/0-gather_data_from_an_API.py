@@ -1,26 +1,43 @@
 #!/usr/bin/python3
-"""Returns information about an employee's TODO list progress."""
-import json
+"""Gather TODO list progress for a single employee."""
+
+import requests
+
 import sys
-import urllib.request
 
 
-def fetch(url):
-    """Fetch and decode JSON from a URL."""
-    with urllib.request.urlopen(url) as response:
-        return json.loads(response.read().decode("utf-8"))
+def main():
+    """ Display an employee's completed TODO tasks."""
+    employee_id = int(sys.argv[1])
+
+    response = requests.get(
+        f"https://jsonplaceholder.typicode.com/users/{employee_id}"
+    )
+
+    if response.status_code == 200:
+        user_data = response.json()
+        todos_response = requests.get(
+            "https://jsonplaceholder.typicode.com/todos",
+            params={"userId": employee_id}
+        )
+
+        if todos_response.status_code == 200:
+            todos = todos_response.json()
+            completed_tasks = [
+                task for task in todos if task.get("completed")
+            ]
+
+            print(
+                "Employee {} is done with tasks({}/{}):".format(
+                    user_data.get("name"),
+                    len(completed_tasks),
+                    len(todos)
+                )
+            )
+
+            for task in completed_tasks:
+                print("\t {}".format(task.get("title")))
 
 
 if __name__ == "__main__":
-    employee_id = int(sys.argv[1])
-    base_url = "https://jsonplaceholder.typicode.com"
-
-    user = fetch("{}/users/{}".format(base_url, employee_id))
-    todos = fetch("{}/todos?userId={}".format(base_url, employee_id))
-
-    done = [t["title"] for t in todos if t["completed"]]
-
-    print("Employee {} is done with tasks({}/{}):".format(
-        user["name"], len(done), len(todos)))
-    for title in done:
-        print("\t {}".format(title))
+    main()
