@@ -1,50 +1,36 @@
 #!/usr/bin/python3
-""""Module"""
+"""Export an employee's TODO list to a CSV file."""
 
 import csv
-import json
 import requests
-from sys import argv
+import sys
+
+
+def main():
+    """Fetch employee todos and write them to a CSV file."""
+    employee_id = int(sys.argv[1])
+
+    user_response = requests.get(
+        f"https://jsonplaceholder.typicode.com/users/{employee_id}"
+    )
+    todos_response = requests.get(
+        "https://jsonplaceholder.typicode.com/todos",
+        params={"userId": employee_id}
+    )
+
+    user = user_response.json()
+    todos = todos_response.json()
+
+    with open(f"{employee_id}.csv", "w", newline="") as csv_file:
+        writer = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
+        for task in todos:
+            writer.writerow([
+                employee_id,
+                user.get("username"),
+                task.get("completed"),
+                task.get("title"),
+            ])
 
 
 if __name__ == "__main__":
-    """
-        request user info by employee ID
-    """
-    request_employee = requests.get(
-        'https://jsonplaceholder.typicode.com/users/{}/'.format(argv[1]))
-    """
-        convert json to dictionary
-    """
-    user = json.loads(request_employee.text)
-    """
-        extract username
-    """
-    username = user.get("username")
-
-    """
-        request user's TODO list
-    """
-    request_todos = requests.get(
-        'https://jsonplaceholder.typicode.com/users/{}/todos'.format(argv[1]))
-    """
-        dictionary to store task status(completed) in boolean format
-    """
-    tasks = {}
-    """
-        convert json to list of dictionaries
-    """
-    user_todos = json.loads(request_todos.text)
-    """
-        loop through dictionary & get completed tasks
-    """
-    for dictionary in user_todos:
-        tasks.update({dictionary.get("title"): dictionary.get("completed")})
-
-    """
-        export to CSV
-    """
-    with open('{}.csv'.format(argv[1]), mode='w') as file:
-        file_editor = csv.writer(file, delimiter=',', quoting=csv.QUOTE_ALL)
-        for k, v in tasks.items():
-            file_editor.writerow([argv[1], username, v, k])
+    main()
